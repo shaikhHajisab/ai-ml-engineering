@@ -1,0 +1,71 @@
+﻿# Python + ML .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Data Files
+*.csv
+*.parquet
+*.json
+*.xlsx
+*.h5
+*.hdf5
+data/raw/
+data/processed/
+
+# ML Models & Artifacts
+*.pkl
+*.pickle
+*.joblib
+*.pt
+*.pth
+*.onnx
+models/
+mlruns/
+artifacts/
+
+# Environment & Secrets
+.env
+.env.*
+*.key
+secrets.yaml
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
