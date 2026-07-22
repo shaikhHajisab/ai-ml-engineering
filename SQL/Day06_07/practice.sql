@@ -22,8 +22,14 @@
 -- Sort by customer_id ascending.
 
 -- Write Query 1 Below:
-
-
+SELECT 
+    customer_id,
+    CONCAT(first_name, ' ', last_name) AS full_name,
+    COALESCE(phone, 'NOT AVAILABLE') AS contact_phone
+FROM 
+    customers
+ORDER BY 
+    customer_id;
 
 
 -- Problem 2 (Easy): Simple Subquery
@@ -31,8 +37,17 @@
 -- average balance of ALL accounts in the bank. Return account_id, customer_id, and balance.
 
 -- Write Query 2 Below:
-
-
+SELECT 
+    account_id,
+    customer_id,
+    balance
+FROM 
+    accounts
+WHERE 
+    balance > (
+        SELECT AVG(balance) 
+        FROM accounts
+    );
 
 
 -- Problem 3 (Easy): Date Extraction
@@ -40,8 +55,16 @@
 -- Return txn_id, account_id, amount, and txn_timestamp.
 
 -- Write Query 3 Below:
-
-
+SELECT 
+    txn_id,
+    account_id,
+    amount,
+    txn_timestamp
+FROM 
+    transactions
+WHERE 
+    EXTRACT(YEAR FROM txn_timestamp) = 2026
+    AND EXTRACT(MONTH FROM txn_timestamp) = 7;
 
 
 -- -----------------------------------------------------------------------------
@@ -54,8 +77,21 @@
 -- Return customer_id, first_name, last_name, and email.
 
 -- Write Query 4 Below:
-
-
+SELECT 
+    c.customer_id,
+    c.first_name,
+    c.last_name,
+    c.email
+FROM 
+    customers c
+WHERE 
+    EXISTS (
+        SELECT 1 
+        FROM accounts a
+        JOIN fraud_alerts fa ON a.account_id = fa.account_id
+        WHERE a.customer_id = c.customer_id
+          AND fa.status = 'PENDING_REVIEW'
+    );
 
 
 -- Problem 5 (Medium): CASE WHEN Conditional Aggregation (Pivoting)
@@ -66,8 +102,15 @@
 -- Return customer_id, total_transactions, successful_transactions, and failed_transactions.
 
 -- Write Query 5 Below:
-
-
+SELECT 
+    customer_id,
+    COUNT(txn_id) AS total_transactions,
+    COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END) AS successful_transactions,
+    COUNT(CASE WHEN status = 'FAILED' OR status = 'REJECTED' THEN 1 END) AS failed_transactions
+FROM 
+    transactions
+GROUP BY 
+    customer_id;
 
 
 -- Problem 6 (Medium): Safe Division & Percent Calculation
@@ -76,8 +119,13 @@
 -- Return txn_id, amount, fee, and fee_percentage rounded to 2 decimal places.
 
 -- Write Query 6 Below:
-
-
+SELECT 
+    txn_id,
+    amount,
+    fee,
+    ROUND((fee::NUMERIC / NULLIF(amount, 0)) * 100, 2) AS fee_percentage
+FROM 
+    transactions;
 
 
 -- -----------------------------------------------------------------------------
@@ -91,8 +139,19 @@
 -- (Hint: Inner query matches outer query account_id and checks amount >= ALL or MAX).
 
 -- Write Query 7 Below:
-
-
+SELECT 
+    a.account_id,
+    a.txn_id,
+    a.amount,
+    a.txn_timestamp
+FROM 
+    transactions a
+WHERE 
+    a.amount = (
+        SELECT MAX(b.amount) 
+        FROM transactions b
+        WHERE b.account_id = a.account_id
+    );
 
 
 -- Problem 8 (Hard): Advanced Fraud ETL — Subquery + Conditional Risk Classification
@@ -105,5 +164,31 @@
 -- Filter out customers with missing email addresses using COALESCE or IS NOT NULL.
 
 -- Write Query 8 Below:
-
-
+SELECT 
+    c.customer_id,
+    CONCAT(c.first_name, ' ', c.last_name) AS full_name,
+    c.email,
+    (SELECT SUM(a.balance) FROM accounts a WHERE a.customer_id = c.customer_id) AS total_balance,
+    (
+        SELECT MAX(t.amount) 
+        FROM transactions t
+        JOIN accounts a ON t.account_id = a.account_id
+        WHERE a.customer_id = c.customer_id
+          AND t.txn_timestamp >= CURRENT_DATE - INTERVAL '30 days'
+    ) AS max_single_txn_amount,
+    CASE 
+        WHEN (SELECT SUM(a.balance) FROM accounts a WHERE a.customer_id = c.customer_id) > 100000 
+             AND (
+                SELECT MAX(t.amount) 
+                FROM transactions t
+                JOIN accounts a ON t.account_id = a.account_id
+                WHERE a.customer_id = c.customer_id
+                  AND t.txn_timestamp >= CURRENT_DATE - INTERVAL '30 days'
+             ) > 25000 
+        THEN 'HIGH RISK'
+        ELSE 'MEDIUM RISK'
+    END AS risk_category
+FROM 
+    customers c
+WHERE 
+    c.email IS NOT NULL;
